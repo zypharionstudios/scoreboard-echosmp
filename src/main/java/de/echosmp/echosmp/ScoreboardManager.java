@@ -11,7 +11,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
@@ -32,8 +31,8 @@ public class ScoreboardManager {
     private static final String TEAM_PLAYTIME = "echo_line_playtime";
 
     // Unsichtbare, eindeutige Einträge für die Teams
-    private static final String ENTRY_PLAYER = ChatColor.BLACK.toString();       // §0
-    private static final String ENTRY_ONLINE = ChatColor.DARK_BLUE.toString();   // §1
+    private static final String ENTRY_PLAYER = ChatColor.BLACK.toString();        // §0
+    private static final String ENTRY_ONLINE = ChatColor.DARK_BLUE.toString();    // §1
     private static final String ENTRY_PLAYTIME = ChatColor.DARK_GREEN.toString(); // §2
 
     private final JavaPlugin plugin;
@@ -61,7 +60,7 @@ public class ScoreboardManager {
         );
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
-        // Rote Zahlen rechts ausblenden (Paper-API)
+        // Rote Zahlen rechts ausblenden (Paper-API, gilt für alle Scores des Objectives)
         objective.numberFormat(NumberFormat.blank());
 
         // Teams für die einzelnen Zeilen anlegen
@@ -153,14 +152,6 @@ public class ScoreboardManager {
                 NamedTextColor.GRAY
         );
         playtimeTeam.prefix(playtimeComponent);
-
-        // Zusätzlich für alle Scores im Objective die Zahlen ausblenden
-        for (String entry : objective.getScoreboard().getEntries()) {
-            Score score = objective.getScore(entry);
-            if (score != null) {
-                score.setNumberFormat(NumberFormat.blank());
-            }
-        }
     }
 
     /**
