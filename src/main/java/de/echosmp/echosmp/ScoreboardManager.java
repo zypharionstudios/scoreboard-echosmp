@@ -19,12 +19,32 @@ import java.util.UUID;
 
 /**
  * Scoreboard mit animiertem Regenbogen-Trennstrich.
- * Der Regenbogen läuft in einem eigenen Scheduler (alle 2 Ticks).
+ *
+ * Layout:
+ *   echo smp        (Gradient)
+ *   Spielername     (weiß)
+ *   👤  3/20        (blau)
+ *   ⏰  2h 15m      (gold)
+ *   💰  Coming soon (grün)
+ *   📶  23ms        (dynamisch: grün / orange / rot je nach Ping)
+ *   ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬  (Regenbogen, wandert nach rechts)
+ *   discord:eosmp   (Discord-Blurple)
+ *
+ * Alle Emoji-Zeilen haben dieselbe Einrückung (3 Leerzeichen nach Emoji),
+ * damit die Werte bündig untereinander starten.
  */
 public class ScoreboardManager {
 
     private static final String OBJECTIVE_NAME = "echo_smp";
     private static final String DISCORD_BLURPLE = "#5865F2";
+
+    // Feste Farben
+    private static final String COLOR_GREEN = "#55FF55";
+    private static final String COLOR_ORANGE = "#FFA500";
+    private static final String COLOR_RED = "#FF5555";
+
+    // Einheitlicher Abstand nach jedem Emoji für bündige Ausrichtung
+    private static final String SPACING = "   "; // 3 Leerzeichen
 
     private static final String SEPARATOR_CHARS = "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬";
     private static final float RAINBOW_SPEED = 0.15f;
@@ -103,12 +123,42 @@ public class ScoreboardManager {
         long seconds = playtimeManager.getPlaytimeSeconds(player.getUniqueId());
         int ping = player.getPing();
 
-        objective.getScore(toLegacy("<white>" + player.getName())).setScore(6);
-        objective.getScore(toLegacy("<blue>" + configManager.getEmojiPlayer() + " " + online + "/" + max)).setScore(5);
-        objective.getScore(toLegacy("<gold>" + configManager.getEmojiClock() + " "
-                + playtimeManager.formatPlaytime(seconds))).setScore(4);
-        objective.getScore(toLegacy("<green>📶 " + ping + "ms")).setScore(3);
+        // Score 7 = Name, 6 = 👤, 5 = ⏰, 4 = 💰, 3 = 📶, 2 = Regenbogen, 1 = Discord
+        objective.getScore(toLegacy("<white>" + player.getName())).setScore(7);
+
+        objective.getScore(toLegacy("<blue>"
+                + configManager.getEmojiPlayer() + SPACING
+                + online + "/" + max)).setScore(6);
+
+        objective.getScore(toLegacy("<gold>"
+                + configManager.getEmojiClock() + SPACING
+                + playtimeManager.formatPlaytime(seconds))).setScore(5);
+
+        objective.getScore(toLegacy("<" + COLOR_GREEN + ">"
+                + "💰" + SPACING
+                + "Coming soon")).setScore(4);
+
+        objective.getScore(toLegacy("<" + getPingColor(ping) + ">"
+                + "📶" + SPACING
+                + ping + "ms")).setScore(3);
+
         objective.getScore(toLegacy("<color:" + DISCORD_BLURPLE + ">discord:eosmp")).setScore(1);
+    }
+
+    /**
+     * Wählt die Ping-Farbe:
+     *   1–150 ms   → grün
+     *   151–250 ms → orange
+     *   251+ ms    → rot
+     */
+    private String getPingColor(int ping) {
+        if (ping <= 150) {
+            return COLOR_GREEN;
+        } else if (ping <= 250) {
+            return COLOR_ORANGE;
+        } else {
+            return COLOR_RED;
+        }
     }
 
     public void updateRainbow(Player player) {
