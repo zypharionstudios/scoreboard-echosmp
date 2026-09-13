@@ -2,7 +2,6 @@ package de.echosmp.echosmp;
 
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -11,36 +10,24 @@ import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Finale, funktionierende Scoreboard-Implementierung für Paper 1.21+.
+ * Scoreboard-Implementierung ohne Teams.
+ * Die Einträge SIND der sichtbare Text – kein Prefix, kein Rest dahinter.
  *
- * Verwendet Teams für die Zeilen und NumberFormat.blank() zum Ausblenden
- * der roten Zahlen. Entscheidend ist die Reihenfolge:
- *   1. Objective erstellen + DisplaySlot setzen
- *   2. Teams erstellen + Entries hinzufügen
- *   3. ERST DANN Scores setzen
- *   4. NumberFormat.blank() auf dem Objective setzen
+ * Farben:
+ *   - Name: weiß (§f)
+ *   - 👤 Spielerzahl: blau (§b)
+ *   - ⏰ Spielzeit: gold (§6)
  */
 public class ScoreboardManager {
 
     private static final String OBJECTIVE_NAME = "echo_smp";
-
-    // Team-Namen (intern, nicht sichtbar)
-    private static final String TEAM_PLAYER = "line_player";
-    private static final String TEAM_ONLINE = "line_online";
-    private static final String TEAM_PLAYTIME = "line_playtime";
-
-    // Entry-Strings – müssen normale, eindeutige Strings sein.
-    // Der sichtbare Inhalt kommt über den Team-Prefix.
-    private static final String ENTRY_PLAYER = "entry_player";
-    private static final String ENTRY_ONLINE = "entry_online";
-    private static final String ENTRY_PLAYTIME = "entry_playtime";
 
     private final JavaPlugin plugin;
     private final ConfigManager configManager;
@@ -59,7 +46,7 @@ public class ScoreboardManager {
     public void setupPlayer(Player player) {
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
 
-        // --- 1. Objective erstellen und DisplaySlot setzen ---
+        // Objective mit Gradient-Titel
         Objective objective = scoreboard.registerNewObjective(
                 OBJECTIVE_NAME,
                 Criteria.DUMMY,
@@ -67,45 +54,23 @@ public class ScoreboardManager {
         );
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
-        // --- 2. Teams ZUERST erstellen und Entries hinzufügen ---
-        Team playerTeam = scoreboard.registerNewTeam(TEAM_PLAYER);
-        playerTeam.addEntry(ENTRY_PLAYER);
+        // Wichtig für Paper 1.21.6+ – sonst wird die Sidebar nicht gerendert
+        objective.setAutoUpdateDisplay(true);
 
-        Team onlineTeam = scoreboard.registerNewTeam(TEAM_ONLINE);
-        onlineTeam.addEntry(ENTRY_ONLINE);
-
-        Team playtimeTeam = scoreboard.registerNewTeam(TEAM_PLAYTIME);
-        playtimeTeam.addEntry(ENTRY_PLAYTIME);
-
-        // --- 3. ERST JETZT Scores setzen (nachdem Teams existieren!) ---
-        // Höherer Score = weiter oben in der Sidebar
-        objective.getScore(ENTRY_PLAYER).setScore(3);
-        objective.getScore(ENTRY_ONLINE).setScore(2);
-        objective.getScore(ENTRY_PLAYTIME).setScore(1);
-
-        // --- 4. NumberFormat.blank() auf dem Objective setzen ---
-        // Blendet die roten Zahlen rechts aus (Paper 1.20.3+)
+        // Rote Zahlen rechts ausblenden
         objective.numberFormat(NumberFormat.blank());
 
-        // Scoreboard dem Spieler zuweisen
         player.setScoreboard(scoreboard);
         scoreboards.put(player.getUniqueId(), scoreboard);
 
-        // Sofort mit aktuellen Werten befüllen
         updatePlayer(player);
     }
 
-    /**
-     * Entfernt das Scoreboard beim Quit.
-     */
     public void removePlayer(Player player) {
         scoreboards.remove(player.getUniqueId());
         player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
     }
 
-    /**
-     * Aktualisiert das Scoreboard für alle Online-Spieler.
-     */
     public void updateAll() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             updatePlayer(player);
@@ -113,7 +78,8 @@ public class ScoreboardManager {
     }
 
     /**
-     * Aktualisiert die Zeilen für einen einzelnen Spieler.
+     * Aktualisiert die drei Zeilen. Alte Einträge werden gelöscht,
+     * damit sich bei Änderungen (z. B. Spielzeit) nichts doppelt.
      */
     public void updatePlayer(Player player) {
         Scoreboard scoreboard = scoreboards.get(player.getUniqueId());
@@ -129,34 +95,26 @@ public class ScoreboardManager {
             return;
         }
 
-        Team playerTeam = scoreboard.getTeam(TEAM_PLAYER);
-        Team onlineTeam = scoreboard.getTeam(TEAM_ONLINE);
-        Team playtimeTeam = scoreboard.getTeam(TEAM_PLAYTIME);
-
-        if (playerTeam == null || onlineTeam == null || playtimeTeam == null) {
-            setupPlayer(player);
-            return;
+        // Alle alten Einträge entfernen
+        for (String entry : new HashSet<>(scoreboard.getEntries())) {
+            scoreboard.resetScores(entry);
         }
 
-        // Zeile 2: Spielername
-        playerTeam.prefix(Component.text(player.getName(), NamedTextColor.WHITE));
-
-        // Zeile 3: Online-Spieler
+        // Werte berechnen
         int online = Bukkit.getOnlinePlayers().size();
         int max = configManager.getMaxPlayers() > 0
                 ? configManager.getMaxPlayers()
                 : Bukkit.getMaxPlayers();
-        onlineTeam.prefix(Component.text(
-                configManager.getEmojiPlayer() + " " + online + "/" + max,
-                NamedTextColor.GRAY
-        ));
-
-        // Zeile 4: Spielzeit
         long seconds = playtimeManager.getPlaytimeSeconds(player.getUniqueId());
-        playtimeTeam.prefix(Component.text(
-                configManager.getEmojiClock() + " " + playtimeManager.formatPlaytime(seconds),
-                NamedTextColor.GRAY
-        ));
+
+        // Zeile 1: Spielername (weiß)
+        objective.getScore("§f" + player.getName()).setScore(3);
+
+        // Zeile 2: 👤 Spielerzahl (blau)
+        objective.getScore("§b" + configManager.getEmojiPlayer() + " " + online + "/" + max).setScore(2);
+
+        // Zeile 3: ⏰ Spielzeit (gold)
+        objective.getScore("§6" + configManager.getEmojiClock() + " " + playtimeManager.formatPlaytime(seconds)).setScore(1);
     }
 
     /**
