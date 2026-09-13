@@ -20,9 +20,8 @@ import java.util.UUID;
 /**
  * Scoreboard mit animiertem Regenbogen-Trennstrich.
  *
- * WICHTIG: Der Legacy-Serializer muss hexColors() aktiviert haben,
- * sonst werden Hex-Farben (#RRGGBB) zu den 16 Basic-Farben heruntergestuft.
- * Dadurch würde der Regenbogen schwarz/grau und discord:blurple grün erscheinen.
+ * Der Regenbogen nutzt eine Sättigung von 0.65, damit kein grelles
+ * #FF0000 mehr auftaucht, sondern ein weicher Pastell-Verlauf.
  */
 public class ScoreboardManager {
 
@@ -32,11 +31,19 @@ public class ScoreboardManager {
     private static final String COLOR_ORANGE = "#FFA500";
     private static final String COLOR_RED = "#FF5555";
 
-    // Einheitlicher Abstand nach jedem Emoji
+    // Einheitlicher Abstand nach jedem Emoji für bündige Ausrichtung
     private static final String SPACING = "  ";
 
     private static final String SEPARATOR_CHARS = "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬";
-    private static final float RAINBOW_SPEED = 0.15f;
+
+    // Geschwindigkeit des Regenbogens (höher = schneller)
+    private static final float RAINBOW_SPEED = 0.10f;
+
+    // Sättigung des Regenbogens (0.0 = weiß, 1.0 = grell)
+    private static final float RAINBOW_SATURATION = 0.65f;
+
+    // Helligkeit des Regenbogens
+    private static final float RAINBOW_BRIGHTNESS = 1.0f;
 
     private final JavaPlugin plugin;
     private final ConfigManager configManager;
@@ -44,7 +51,7 @@ public class ScoreboardManager {
     private final Map<UUID, Scoreboard> scoreboards = new HashMap<>();
     private final Map<UUID, String> currentSeparators = new HashMap<>();
 
-    // FIX: hexColors() aktivieren, damit RGB-Farben erhalten bleiben
+    // WICHTIG: hexColors() aktivieren, damit #RRGGBB-Farben erhalten bleiben
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.builder()
             .character(LegacyComponentSerializer.SECTION_CHAR)
             .hexColors()
@@ -165,6 +172,9 @@ public class ScoreboardManager {
         currentSeparators.put(player.getUniqueId(), newSep);
     }
 
+    /**
+     * Baut den Regenbogen mit weicher Sättigung (kein grelles Rot).
+     */
     private String buildRainbowSeparator() {
         long tick = System.currentTimeMillis() / 50L;
         int len = SEPARATOR_CHARS.length();
@@ -174,7 +184,8 @@ public class ScoreboardManager {
             float hue = ((i - tick * RAINBOW_SPEED) / len) % 1.0f;
             if (hue < 0) hue += 1.0f;
 
-            int rgb = hsvToRgb(hue, 1.0f, 1.0f);
+            // Weicher Pastell-Regenbogen dank reduzierter Sättigung
+            int rgb = hsvToRgb(hue, RAINBOW_SATURATION, RAINBOW_BRIGHTNESS);
             String hex = String.format("#%06X", rgb & 0xFFFFFF);
             sb.append("<color:").append(hex).append(">").append(SEPARATOR_CHARS.charAt(i));
         }
