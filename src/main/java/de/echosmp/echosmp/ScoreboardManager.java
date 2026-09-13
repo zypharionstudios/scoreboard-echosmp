@@ -5,7 +5,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.Criteria;
@@ -30,10 +29,12 @@ public class ScoreboardManager {
     private static final String TEAM_ONLINE = "echo_line_online";
     private static final String TEAM_PLAYTIME = "echo_line_playtime";
 
-    // Unsichtbare, eindeutige Einträge für die Teams
-    private static final String ENTRY_PLAYER = ChatColor.BLACK.toString();        // §0
-    private static final String ENTRY_ONLINE = ChatColor.DARK_BLUE.toString();    // §1
-    private static final String ENTRY_PLAYTIME = ChatColor.DARK_GREEN.toString(); // §2
+    // Sichtbare, eindeutige Einträge für die Teams.
+    // Der eigentliche Inhalt kommt über den Team-Prefix; die roten Zahlen
+    // werden durch NumberFormat.blank() ausgeblendet.
+    private static final String ENTRY_PLAYER = "line_player";
+    private static final String ENTRY_ONLINE = "line_online";
+    private static final String ENTRY_PLAYTIME = "line_playtime";
 
     private final JavaPlugin plugin;
     private final ConfigManager configManager;
