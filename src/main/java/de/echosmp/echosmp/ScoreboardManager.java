@@ -20,31 +20,20 @@ import java.util.UUID;
 /**
  * Scoreboard mit animiertem Regenbogen-Trennstrich.
  *
- * Layout:
- *   echo smp        (Gradient)
- *   Spielername     (weiß)
- *   👤  3/20        (blau)
- *   ⏰  2h 15m      (gold)
- *   💰  Coming soon (grün)
- *   📶  23ms        (dynamisch: grün / orange / rot je nach Ping)
- *   ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬  (Regenbogen, wandert nach rechts)
- *   discord:eosmp   (Discord-Blurple)
- *
- * Alle Emoji-Zeilen haben dieselbe Einrückung (3 Leerzeichen nach Emoji),
- * damit die Werte bündig untereinander starten.
+ * WICHTIG: Der Legacy-Serializer muss hexColors() aktiviert haben,
+ * sonst werden Hex-Farben (#RRGGBB) zu den 16 Basic-Farben heruntergestuft.
+ * Dadurch würde der Regenbogen schwarz/grau und discord:blurple grün erscheinen.
  */
 public class ScoreboardManager {
 
     private static final String OBJECTIVE_NAME = "echo_smp";
     private static final String DISCORD_BLURPLE = "#5865F2";
-
-    // Feste Farben
     private static final String COLOR_GREEN = "#55FF55";
     private static final String COLOR_ORANGE = "#FFA500";
     private static final String COLOR_RED = "#FF5555";
 
-    // Einheitlicher Abstand nach jedem Emoji für bündige Ausrichtung
-    private static final String SPACING = "   "; // 3 Leerzeichen
+    // Einheitlicher Abstand nach jedem Emoji
+    private static final String SPACING = "  ";
 
     private static final String SEPARATOR_CHARS = "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬";
     private static final float RAINBOW_SPEED = 0.15f;
@@ -55,7 +44,11 @@ public class ScoreboardManager {
     private final Map<UUID, Scoreboard> scoreboards = new HashMap<>();
     private final Map<UUID, String> currentSeparators = new HashMap<>();
 
-    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    // FIX: hexColors() aktivieren, damit RGB-Farben erhalten bleiben
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.builder()
+            .character(LegacyComponentSerializer.SECTION_CHAR)
+            .hexColors()
+            .build();
     private static final MiniMessage MM = MiniMessage.miniMessage();
 
     public ScoreboardManager(JavaPlugin plugin, ConfigManager configManager, PlaytimeManager playtimeManager) {
@@ -145,12 +138,6 @@ public class ScoreboardManager {
         objective.getScore(toLegacy("<color:" + DISCORD_BLURPLE + ">discord:eosmp")).setScore(1);
     }
 
-    /**
-     * Wählt die Ping-Farbe:
-     *   1–150 ms   → grün
-     *   151–250 ms → orange
-     *   251+ ms    → rot
-     */
     private String getPingColor(int ping) {
         if (ping <= 150) {
             return COLOR_GREEN;
