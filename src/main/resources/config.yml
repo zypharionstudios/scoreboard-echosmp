@@ -1,0 +1,20 @@
+# EchoSMP – automatisch erzeugte Konfiguration
+# Diese Datei wird beim ersten Start im Plugin-Ordner EchoSMP angelegt.
+
+# Aktualisierungsintervall des Scoreboards in Ticks (20 Ticks = 1 Sekunde)
+update-interval-ticks: 20
+
+# Maximale Spielerzahl. -1 bedeutet: Bukkit.getMaxPlayers() verwenden.
+max-players: -1
+
+# Farben für den weichen Gradienten im Scoreboard-Titel
+gradient-start: "#FF8A8A"
+gradient-mid: "#E63946"
+gradient-end: "#FFA500"
+
+# Emojis für die Scoreboard-Zeilen
+emoji-player: "👤"
+emoji-clock: "⏰"
+
+# Titel des Scoreboards (wird im Gradienten angezeigt)
+scoreboard-title: "echo smp"
