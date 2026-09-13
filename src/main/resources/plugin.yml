@@ -1,0 +1,6 @@
+name: EchoSMP
+version: 1.0.0
+main: de.echosmp.echosmp.EchoSmpPlugin
+api-version: '1.21'
+author: EchoSMP
+description: Sidebar-Scoreboard für Echo SMP
