@@ -20,6 +20,9 @@ import java.util.UUID;
 /**
  * Erstellt und aktualisiert das Sidebar-Scoreboard für jeden Spieler.
  * Die roten Zahlen rechts werden über die Paper-API ausgeblendet.
+ *
+ * Wichtig für Paper 1.21.6+: Die Teams MÜSSEN vor dem Setzen der Scores
+ * vollständig initialisiert werden, sonst wird die Sidebar nicht gerendert.
  */
 public class ScoreboardManager {
 
@@ -29,9 +32,9 @@ public class ScoreboardManager {
     private static final String TEAM_ONLINE = "echo_line_online";
     private static final String TEAM_PLAYTIME = "echo_line_playtime";
 
-    // Sichtbare, eindeutige Einträge für die Teams.
-    // Der eigentliche Inhalt kommt über den Team-Prefix; die roten Zahlen
-    // werden durch NumberFormat.blank() ausgeblendet.
+    // Eindeutige, sichtbare Einträge für die Teams.
+    // Der Inhalt kommt über den Team-Prefix; die roten Zahlen werden
+    // durch NumberFormat.blank() ausgeblendet.
     private static final String ENTRY_PLAYER = "line_player";
     private static final String ENTRY_ONLINE = "line_online";
     private static final String ENTRY_PLAYTIME = "line_playtime";
@@ -54,6 +57,7 @@ public class ScoreboardManager {
     public void setupPlayer(Player player) {
         Scoreboard scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
 
+        // 1. Objective erstellen und DisplaySlot setzen
         Objective objective = scoreboard.registerNewObjective(
                 OBJECTIVE_NAME,
                 Criteria.DUMMY,
@@ -61,10 +65,10 @@ public class ScoreboardManager {
         );
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
-        // Rote Zahlen rechts ausblenden (Paper-API, gilt für alle Scores des Objectives)
+        // 2. Rote Zahlen rechts ausblenden (Paper-API)
         objective.numberFormat(NumberFormat.blank());
 
-        // Teams für die einzelnen Zeilen anlegen
+        // 3. Teams ZUERST vollständig initialisieren
         Team playerTeam = scoreboard.registerNewTeam(TEAM_PLAYER);
         playerTeam.addEntry(ENTRY_PLAYER);
 
@@ -74,14 +78,17 @@ public class ScoreboardManager {
         Team playtimeTeam = scoreboard.registerNewTeam(TEAM_PLAYTIME);
         playtimeTeam.addEntry(ENTRY_PLAYTIME);
 
-        // Scores dienen nur der Sortierung (höher = weiter oben)
+        // 4. ERST JETZT die Scores setzen (nachdem die Teams existieren)
+        // Höherer Score = weiter oben in der Sidebar
         objective.getScore(ENTRY_PLAYER).setScore(3);
         objective.getScore(ENTRY_ONLINE).setScore(2);
         objective.getScore(ENTRY_PLAYTIME).setScore(1);
 
+        // 5. Scoreboard dem Spieler zuweisen
         player.setScoreboard(scoreboard);
         scoreboards.put(player.getUniqueId(), scoreboard);
 
+        // 6. Sofort mit aktuellen Werten befüllen
         updatePlayer(player);
     }
 
@@ -108,7 +115,6 @@ public class ScoreboardManager {
     public void updatePlayer(Player player) {
         Scoreboard scoreboard = scoreboards.get(player.getUniqueId());
 
-        // Falls das Scoreboard fehlt (z. B. nach Reload), neu aufbauen
         if (scoreboard == null) {
             setupPlayer(player);
             return;
